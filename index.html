@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DVD Collection — Accesso</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css">
+  </head>
+  
+  <body>
+    <div class="wrapper">
+      <div class="card">
+        <div class="logo-area">
+          <div class="logo-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 14c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+          </div>
+          <div class="logo-title">DVD Collection</div>
+          <div class="logo-sub">Archivio Personale</div>
+        </div>
+
+        <div class="field">
+          <label for="pw">Password di accesso</label>
+          <div class="input-wrap">
+            <input type="password" id="pw" placeholder="••••••••••••" />
+            <button class="toggle-pw" id="togglePw" type="button">
+              <svg id="eyeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <button class="btn-login" id="btnLogin">ACCEDI</button>
+        <div class="error-msg" id="errMsg">Password errata. Riprova.</div>
+      </div>
+    </div>
+
+    <!-- Il file auth.js deve contenere la funzione verifyPassword(pw) -->
+    <script src="auth.js"></script>
+    <script>
+      const pwInput = document.getElementById('pw');
+      const btnLogin = document.getElementById('btnLogin');
+      const errMsg = document.getElementById('errMsg');
+      const toggleBtn = document.getElementById('togglePw');
+      const eyeIcon = document.getElementById('eyeIcon');
+
+      // Definizioni tracciati SVG
+      const iconOpen = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
+      const iconClosed = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
+
+      // Gestione Visibilità Password
+      toggleBtn.addEventListener('click', () => {
+        const isPw = pwInput.type === 'password';
+        
+        // Cambia tipo input
+        pwInput.type = isPw ? 'text' : 'password';
+        
+        // Cambia icona (mostra occhio sbarrato se il testo è visibile)
+        eyeIcon.innerHTML = isPw ? iconClosed : iconOpen;
+      });
+
+      async function doLogin() {
+        const pw = pwInput.value;
+        if (!pw) return;
+
+        btnLogin.textContent = 'VERIFICA...';
+        
+        try {
+          // Nota: verifyPassword deve essere definita in auth.js
+          const ok = await verifyPassword(pw);
+
+          if (ok) {
+            sessionStorage.setItem('dvd_auth', '1');
+            window.location.href = 'home.html';
+          } else {
+            handleError();
+          }
+        } catch (e) {
+          console.error("Errore durante la verifica:", e);
+          handleError();
+        }
+      }
+
+      function handleError() {
+        pwInput.classList.add('error');
+        errMsg.classList.add('visible');
+        btnLogin.textContent = 'ACCEDI';
+        setTimeout(() => {
+          pwInput.classList.remove('error');
+          pwInput.value = '';
+          pwInput.focus();
+        }, 600);
+      }
+
+      btnLogin.addEventListener('click', doLogin);
+      pwInput.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+    </script>
+  </body>
+</html>

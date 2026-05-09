@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DVD Collection</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+
+  <!-- ═══════════════ HEADER ═══════════════ -->
+  <header>
+    <div class="header-logo">
+      <div class="logo-disc"></div>
+      <span class="logo-text">DVD Collection</span>
+    </div>
+
+    <div class="header-right">
+      <div class="stat">
+        <span class="stat-n" id="statTotal">0</span>
+        <span>Totale</span>
+      </div>
+      <div class="stat">
+        <span class="stat-n" id="statFiltered">0</span>
+        <span>Filtrati</span>
+      </div>
+
+      <button class="btn-add-header" id="btnAdd" title="Aggiungi DVD">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        <span>AGGIUNGI DVD</span>
+      </button>
+
+      <button class="btn-logout" id="btnLogout">ESCI</button>
+    </div>
+  </header>
+
+  <!-- ═══════════════ FILTERS ═══════════════ -->
+  <div class="filters-bar" id="filtersBar">
+
+    <!-- Mobile toggle (hidden on desktop via CSS) -->
+    <button class="btn-filters-toggle" id="btnFiltersToggle" type="button">
+      <span style="display:flex;align-items:center;gap:8px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+          <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/>
+        </svg>
+        Filtri
+        <span class="filters-active-badge" id="filtersActiveBadge">0</span>
+      </span>
+      <svg class="toggle-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="6 9 12 15 18 9"/>
+      </svg>
+    </button>
+
+    <div class="filter-group" style="flex:2;min-width:200px;">
+      <label>Cerca</label>
+      <input type="text" id="fSearch" placeholder="Titolo, regista…" />
+    </div>
+    <div class="filter-group">
+      <label>Regista</label>
+      <select id="fRegista"><option value="">Tutti</option></select>
+    </div>
+    <div class="filter-group">
+      <label>Anno</label>
+      <select id="fAnno"><option value="">Tutti</option></select>
+    </div>
+    <div class="filter-group">
+      <label>Formato</label>
+      <select id="fFormato">
+        <option value="">Tutti</option>
+        <option>DVD</option>
+        <option>Blu-Ray</option>
+        <option>4K UHD</option>
+        <option>VHS</option>
+        <option>LaserDisc</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Regione</label>
+      <select id="fRegione"><option value="">Tutte</option></select>
+    </div>
+    <div class="filter-group">
+      <label>Collana</label>
+      <select id="fCollana">
+        <option value="">Tutte</option>
+        <option value="si">Solo collane</option>
+        <option value="no">Senza collana</option>
+      </select>
+    </div>
+    <div class="filters-actions">
+      <button class="btn-reset" id="btnReset">✕ Reset</button>
+    </div>
+  </div>
+
+  <!-- results bar -->
+  <div class="results-bar">
+    <span class="results-count">
+      Mostrati <strong id="rcFiltered">0</strong> su <strong id="rcTotal">0</strong> DVD
+    </span>
+    <span class="sort-info" id="sortInfo">Ordinati per: Titolo ↑</span>
+  </div>
+
+  <!-- ═══════════════ MAIN ═══════════════ -->
+  <main>
+
+    <!-- TABELLA: thead (sticky) -->
+    <div class="table-head-wrap" id="tableHeadWrap">
+      <table id="dvdTable-head">
+        <colgroup>
+          <col /><col /><col /><col />
+          <col /><col /><col /><col />
+        </colgroup>
+        <thead>
+          <tr>
+            <th data-col="titolo">Titolo <span class="sort-arrow">↕</span></th>
+            <th data-col="regista">Regista <span class="sort-arrow">↕</span></th>
+            <th data-col="anno">Anno <span class="sort-arrow">↕</span></th>
+            <th data-col="durata">Durata <span class="sort-arrow">↕</span></th>
+            <th data-col="formato">Formato <span class="sort-arrow">↕</span></th>
+            <th data-col="regione">Regione <span class="sort-arrow">↕</span></th>
+            <th data-col="collana">Collana / Azienda <span class="sort-arrow">↕</span></th>
+            <th class="col-actions">Azioni</th>
+          </tr>
+        </thead>
+      </table>
+    </div>
+
+    <!-- TABELLA: tbody (scrollabile) -->
+    <div class="table-body-wrap" id="tableBodyWrap">
+      <table id="dvdTable">
+        <colgroup>
+          <col /><col /><col /><col />
+          <col /><col /><col /><col />
+        </colgroup>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+
+    <!-- CARDS (mobile / tablet) -->
+    <div class="cards-grid" id="cardsGrid"></div>
+
+    <!-- EMPTY STATE -->
+    <div class="empty-state" id="emptyState" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+        <circle cx="12" cy="12" r="10"/>
+        <circle cx="12" cy="12" r="3"/>
+        <line x1="2" y1="12" x2="9" y2="12"/>
+        <line x1="15" y1="12" x2="22" y2="12"/>
+      </svg>
+      <p>Nessun DVD trovato.<br>Prova a modificare i filtri o <strong onclick="document.getElementById('btnAdd').click()">aggiungi il primo titolo</strong>.</p>
+    </div>
+
+  </main>
+
+  <!-- ═══════════════ MODAL ═══════════════ -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title" id="modalTitle">AGGIUNGI DVD</span>
+        <button class="modal-close" id="modalClose">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-field full">
+            <label>Titolo *</label>
+            <input type="text" id="fTitolo" placeholder="Es. Blade Runner" />
+          </div>
+          <div class="form-field">
+            <label>Regista</label>
+            <input type="text" id="fRegista2" placeholder="Es. Ridley Scott" />
+          </div>
+          <div class="form-field">
+            <label>Anno</label>
+            <input type="number" id="fAnno2" placeholder="Es. 1982" min="1888" max="2099" />
+          </div>
+          <div class="form-field">
+            <label>Durata (min)</label>
+            <input type="number" id="fDurata" placeholder="Es. 117" min="1" max="999" />
+          </div>
+          <div class="form-field">
+            <label>Formato</label>
+            <select id="fFormato2">
+              <option value="">— seleziona —</option>
+              <option>DVD</option><option>Blu-Ray</option>
+              <option>4K UHD</option><option>VHS</option><option>LaserDisc</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Regione</label>
+            <input type="text" id="fRegione2" placeholder="Es. Italia, Region A, All..." />
+          </div>
+          <div class="form-field full">
+            <div class="checkbox-field">
+              <input type="checkbox" id="fIsCollana" />
+              <label for="fIsCollana">Fa parte di una collana / edizione speciale</label>
+            </div>
+          </div>
+          <div class="form-field full" id="collanaField" style="display:none">
+            <label>Nome Collana / Azienda</label>
+            <input type="text" id="fCollana2" placeholder="Es. Criterion Collection, Koch Media…" />
+          </div>
+          <div class="form-field full">
+            <label>Note (opzionale)</label>
+            <textarea id="fNote" placeholder="Edizione speciale, lingua, sottotitoli…"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-cancel" id="btnCancel">Annulla</button>
+          <button class="btn-save" id="btnSave">SALVA</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ CONFIRM DELETE ═══════════════ -->
+  <div class="confirm-overlay" id="confirmOverlay">
+    <div class="confirm-box">
+      <p>Stai per eliminare definitivamente:</p>
+      <strong id="confirmTitle">—</strong>
+      <div class="confirm-btns">
+        <button class="btn-cancel" id="confirmCancel">Annulla</button>
+        <button class="btn-confirm-del" id="confirmDel">Elimina</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ TOAST ═══════════════ -->
+  <div class="toast" id="toast"></div>
+
+  <!-- Sync scroll thead ↔ tbody -->
+  <script>
+    (function () {
+      const headWrap = document.getElementById('tableHeadWrap');
+      const bodyWrap = document.getElementById('tableBodyWrap');
+      if (!headWrap || !bodyWrap) return;
+      let syncing = false;
+      bodyWrap.addEventListener('scroll', function () {
+        if (syncing) return; syncing = true;
+        headWrap.scrollLeft = bodyWrap.scrollLeft; syncing = false;
+      });
+      headWrap.addEventListener('scroll', function () {
+        if (syncing) return; syncing = true;
+        bodyWrap.scrollLeft = headWrap.scrollLeft; syncing = false;
+      });
+    })();
+  </script>
+
+  <!-- Mobile filter toggle logic -->
+  <script>
+    (function () {
+      const btn = document.getElementById('btnFiltersToggle');
+      const bar = document.getElementById('filtersBar');
+      const badge = document.getElementById('filtersActiveBadge');
+      if (!btn || !bar) return;
+
+      btn.addEventListener('click', function () {
+        const isOpen = bar.classList.toggle('open');
+        btn.classList.toggle('open', isOpen);
+      });
+
+      // Count active filters and update badge
+      function updateBadge() {
+        const inputs = [
+          document.getElementById('fSearch'),
+          document.getElementById('fRegista'),
+          document.getElementById('fAnno'),
+          document.getElementById('fFormato'),
+          document.getElementById('fRegione'),
+          document.getElementById('fCollana'),
+        ];
+        const count = inputs.filter(el => el && el.value !== '').length;
+        if (badge) {
+          badge.textContent = count;
+          badge.classList.toggle('visible', count > 0);
+        }
+      }
+
+      // Observe filter changes
+      ['fSearch','fRegista','fAnno','fFormato','fRegione','fCollana'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.addEventListener('input',  updateBadge);
+          el.addEventListener('change', updateBadge);
+        }
+      });
+
+      document.getElementById('btnReset')?.addEventListener('click', function () {
+        setTimeout(updateBadge, 0);
+      });
+    })();
+  </script>
+
+  <script src="auth.js"></script>
+  <script src="db.js"></script>
+  <script src="app.js"></script>
+  </body>
+</html>
