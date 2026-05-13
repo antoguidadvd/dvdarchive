@@ -57,7 +57,8 @@ const els = {
   fRegione2:      $('fRegione2'),
   fIsCollana:     $('fIsCollana'),
   collanaField:   $('collanaField'),
-  fCollana2:      $('fCollana2'),
+  collaneList:    $('collaneList'),
+  btnAddCollana:  $('btnAddCollana'),
   fNote:          $('fNote'),
   confirmOverlay: $('confirmOverlay'),
   confirmTitle:   $('confirmTitle'),
@@ -126,6 +127,29 @@ function rebuildFilterOptions() {
   populateSelect(els.fRegista, registi);
   populateSelect(els.fAnno,    anni);
   populateSelect(els.fRegione, regioni);
+  rebuildCollaneFilter();
+}
+
+function rebuildCollaneFilter() {
+  const sel = els.fCollana;
+  const current = sel.value;
+  // Keep first 3 static options: Tutte, Solo con collana, Senza collana
+  while (sel.options.length > 3) sel.remove(3);
+  // Collect all distinct collane names
+  const nomi = [...new Set(
+    state.all.flatMap(d => d.collane || []).filter(Boolean)
+  )].sort();
+  if (nomi.length > 0) {
+    const sep = document.createElement('option');
+    sep.disabled = true; sep.textContent = '── Per nome ──';
+    sel.appendChild(sep);
+    nomi.forEach(n => {
+      const opt = document.createElement('option');
+      opt.value = 'nome:' + n; opt.textContent = n;
+      sel.appendChild(opt);
+    });
+  }
+  if (sel.querySelector(`option[value="${current}"]`)) sel.value = current;
 }
 
 function populateSelect(sel, values) {
@@ -158,6 +182,10 @@ function applyFiltersAndRender() {
     if (regione && d.regione !== regione) return false;
     if (collana === 'si' && !d.isCollana) return false;
     if (collana === 'no' && d.isCollana)  return false;
+    if (collana.startsWith('nome:')) {
+      const nomeCercato = collana.slice(5);
+      if (!(d.collane || []).includes(nomeCercato)) return false;
+    }
     return true;
   });
 
@@ -263,12 +291,15 @@ function renderCards() {
     if (dvd.regione) tags.push(`<span class="card-tag accent">${escHtml(dvd.regione)}</span>`);
     if (dvd.isCollana) tags.push(`<span class="card-tag green">Collana</span>`);
 
-    // Extra info (collana name + note)
+    // Extra info (collane + note)
     let extraHtml = '';
-    if ((dvd.isCollana && dvd.collana) || dvd.note) {
+    const hasCollane = dvd.isCollana && dvd.collane && dvd.collane.length > 0;
+    if (hasCollane || dvd.note) {
       const rows = [];
-      if (dvd.isCollana && dvd.collana) {
-        rows.push(`<div class="card-collana"><span style="opacity:.5;font-size:.9em">📦</span> ${escHtml(dvd.collana)}</div>`);
+      if (hasCollane) {
+        dvd.collane.forEach(c => {
+          rows.push(`<div class="card-collana"><span style="opacity:.5;font-size:.9em">📦</span> ${escHtml(c)}</div>`);
+        });
       }
       if (dvd.note) {
         rows.push(`<div class="card-note">${escHtml(dvd.note)}</div>`);
@@ -340,8 +371,9 @@ function openModal(dvd = null) {
   els.fFormato2.value    = dvd?.formato  || '';
   els.fRegione2.value    = dvd?.regione  || '';
   els.fIsCollana.checked = dvd?.isCollana || false;
-  els.fCollana2.value    = dvd?.collana  || '';
   els.fNote.value        = dvd?.note     || '';
+  // Ricostruisce i campi collane
+  renderCollaneInputs(dvd?.collane || []);
   els.collanaField.style.display = els.fIsCollana.checked ? 'flex' : 'none';
   els.btnSave.textContent = 'SALVA';
   els.modalOverlay.classList.add('open');
@@ -360,6 +392,10 @@ async function saveDvd() {
   const titolo = els.fTitolo.value.trim();
   if (!titolo) { showToast('Il titolo è obbligatorio.', true); els.fTitolo.focus(); return; }
 
+  const collane = els.fIsCollana.checked
+    ? [...els.collaneList.querySelectorAll('input')]
+        .map(i => i.value.trim()).filter(Boolean)
+    : [];
   const dvd = {
     titolo,
     regista:   els.fRegista2.value.trim(),
@@ -368,7 +404,7 @@ async function saveDvd() {
     formato:   els.fFormato2.value  || null,
     regione:   els.fRegione2.value  || null,
     isCollana: els.fIsCollana.checked,
-    collana:   els.fIsCollana.checked ? els.fCollana2.value.trim() : null,
+    collane,
     note:      els.fNote.value.trim() || null,
   };
 
@@ -464,15 +500,51 @@ function regioneBadge(regione) {
 }
 
 function collanaCella(dvd) {
-  if (!dvd.isCollana) return '<span style="color:var(--muted)">—</span>';
-  return dvd.collana
-    ? `<span class="badge-coll">Collana</span><span class="collana-name">${escHtml(dvd.collana)}</span>`
-    : `<span class="badge-coll">Collana</span>`;
+  if (!dvd.isCollana || !(dvd.collane || []).length) {
+    return dvd.isCollana
+      ? '<span class="badge-coll">Collana</span>'
+      : '<span style="color:var(--text-muted)">—</span>';
+  }
+  return dvd.collane.map(c =>
+    `<span class="badge-coll">Collana</span><span class="collana-name">${escHtml(c)}</span>`
+  ).join('<br>');
 }
 
 function escHtml(str) {
   if (!str) return '';
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   COLLANE MULTI-INPUT
+═══════════════════════════════════════════════════════════ */
+function renderCollaneInputs(collane) {
+  els.collaneList.innerHTML = '';
+  if (collane.length === 0) collane = [''];
+  collane.forEach(v => addCollanaInput(v));
+}
+
+function addCollanaInput(value = '') {
+  const row = document.createElement('div');
+  row.className = 'collana-row';
+  const inp = document.createElement('input');
+  inp.type = 'text';
+  inp.placeholder = 'Es. Criterion Collection, Koch Media…';
+  inp.value = value;
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addCollanaInput(''); } });
+  const btnRem = document.createElement('button');
+  btnRem.type = 'button';
+  btnRem.className = 'btn-remove-collana';
+  btnRem.title = 'Rimuovi';
+  btnRem.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+  btnRem.addEventListener('click', () => {
+    row.remove();
+    if (els.collaneList.children.length === 0) addCollanaInput('');
+  });
+  row.appendChild(inp);
+  row.appendChild(btnRem);
+  els.collaneList.appendChild(row);
+  inp.focus();
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -531,11 +603,14 @@ function bindEvents() {
   });
 
   els.fIsCollana.addEventListener('change', () => {
-    els.collanaField.style.display = els.fIsCollana.checked ? 'flex' : 'none';
-    if (!els.fIsCollana.checked) els.fCollana2.value = '';
+    const show = els.fIsCollana.checked;
+    els.collanaField.style.display = show ? 'flex' : 'none';
+    if (show && els.collaneList.children.length === 0) addCollanaInput('');
   });
 
-  [els.fTitolo, els.fRegista2, els.fAnno2, els.fDurata, els.fRegione2, els.fCollana2].forEach(inp => {
+  els.btnAddCollana.addEventListener('click', () => addCollanaInput(''));
+
+  [els.fTitolo, els.fRegista2, els.fAnno2, els.fDurata, els.fRegione2].forEach(inp => {
     inp.addEventListener('keydown', e => { if (e.key === 'Enter') saveDvd(); });
   });
 

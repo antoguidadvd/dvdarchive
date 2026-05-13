@@ -805,3 +805,75 @@ tbody tr:hover td:first-child::before {
 
   .cards-grid { padding: .6rem; gap: .6rem; }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   MULTI-COLLANA — MODAL
+═══════════════════════════════════════════════════════════ */
+
+/* Il campo collane usa flex-direction column */
+#collanaField {
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 10px;
+}
+
+#collaneList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.collana-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+}
+
+.collana-row input {
+  flex: 1;
+  min-width: 0; /* evita overflow */
+  background: var(--bg-body);
+  border: 1px solid var(--border);
+  color: var(--text-main);
+  padding: .65rem .75rem;
+  border-radius: var(--radius);
+  font-family: var(--font-ui);
+  font-size: .9rem;
+  transition: border-color var(--transition);
+}
+.collana-row input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59,130,246,.1); }
+.collana-row input::placeholder { color: var(--text-muted); }
+
+.btn-remove-collana {
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  width: 34px; height: 34px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: var(--transition);
+}
+.btn-remove-collana:hover { border-color: var(--danger); color: var(--danger); background: rgba(239,68,68,.06); }
+
+.btn-add-collana {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start; /* non si allarga a tutta larghezza */
+  background: transparent;
+  border: 1px dashed var(--border-focus);
+  color: var(--primary);
+  padding: .45rem 1rem;
+  border-radius: var(--radius);
+  font-size: .82rem;
+  font-weight: 600;
+  letter-spacing: .3px;
+  cursor: pointer;
+  transition: var(--transition);
+  font-family: var(--font-ui);
+}
+.btn-add-collana:hover { background: rgba(59,130,246,.08); border-color: var(--primary); }

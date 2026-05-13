@@ -29,6 +29,17 @@ async function _sbFetch(path, options = {}) {
 /* ─── Mapping DB ↔ App ───────────────────────────────────── */
 function _toApp(row) {
   if (!row) return null;
+  // Supporto multi-collana: il campo "collana" può essere una stringa legacy
+  // oppure un array JSON. Normalizziamo sempre ad array.
+  let collane = [];
+  if (Array.isArray(row.collane)) {
+    collane = row.collane.filter(Boolean);
+  } else if (row.collane) {
+    try { collane = JSON.parse(row.collane); } catch { collane = [row.collane]; }
+  } else if (row.collana) {
+    // retrocompatibilità con vecchio campo singolo
+    collane = [row.collana];
+  }
   return {
     id:        String(row.id),
     titolo:    row.titolo     || '',
@@ -38,13 +49,14 @@ function _toApp(row) {
     formato:   row.formato    || null,
     regione:   row.regione    || null,
     isCollana: row.is_collana || false,
-    collana:   row.collana    || null,
+    collane:   collane,          // array (può essere vuoto)
     note:      row.note       || null,
     createdAt: row.created_at || null,
   };
 }
 
 function _toDB(dvd) {
+  const collane = Array.isArray(dvd.collane) ? dvd.collane.filter(Boolean) : [];
   return {
     titolo:     dvd.titolo    || null,
     regista:    dvd.regista   || null,
@@ -53,7 +65,8 @@ function _toDB(dvd) {
     formato:    dvd.formato   || null,
     regione:    dvd.regione   || null,
     is_collana: dvd.isCollana || false,
-    collana:    dvd.collana   || null,
+    collane:    collane,        // array salvato come JSONB / text[]
+    collana:    collane[0] || null, // manteniamo retrocompat colonna legacy
     note:       dvd.note      || null,
   };
 }

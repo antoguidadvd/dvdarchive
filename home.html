@@ -86,7 +86,7 @@
       <label>Collana</label>
       <select id="fCollana">
         <option value="">Tutte</option>
-        <option value="si">Solo collane</option>
+        <option value="si">Solo con collana</option>
         <option value="no">Senza collana</option>
       </select>
     </div>
@@ -203,8 +203,14 @@
             </div>
           </div>
           <div class="form-field full" id="collanaField" style="display:none">
-            <label>Nome Collana / Azienda</label>
-            <input type="text" id="fCollana2" placeholder="Es. Criterion Collection, Koch Media…" />
+            <label>Collane / Edizioni
+              <span style="font-weight:400;color:var(--text-muted);font-size:.8em;text-transform:none;margin-left:6px;">puoi aggiungerne più di una</span>
+            </label>
+            <div id="collaneList" style="display:flex;flex-direction:column;gap:8px;"></div>
+            <button type="button" id="btnAddCollana" class="btn-add-collana">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Aggiungi collana
+            </button>
           </div>
           <div class="form-field full">
             <label>Note (opzionale)</label>
