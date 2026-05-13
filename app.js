@@ -130,26 +130,42 @@ function rebuildFilterOptions() {
   rebuildCollaneFilter();
 }
 
+/**
+ * Popola il selettore delle collane con i nomi unici trovati nei dati
+ */
 function rebuildCollaneFilter() {
   const sel = els.fCollana;
+  if (!sel) return;
   const current = sel.value;
-  // Keep first 3 static options: Tutte, Solo con collana, Senza collana
-  while (sel.options.length > 3) sel.remove(3);
-  // Collect all distinct collane names
+
+  // Rimuove opzioni precedenti oltre alle 3 fisse (Tutte, Si, No)
+  while (sel.options.length > 3) {
+    sel.remove(3);
+  }
+
+  // Estrae nomi unici dall'array 'collane' di ogni DVD
   const nomi = [...new Set(
-    state.all.flatMap(d => d.collane || []).filter(Boolean)
-  )].sort();
+    state.all.flatMap(d => d.collane || [])
+  )].filter(Boolean).sort();
+
   if (nomi.length > 0) {
     const sep = document.createElement('option');
-    sep.disabled = true; sep.textContent = '── Per nome ──';
+    sep.disabled = true;
+    sep.textContent = '── Per nome ──';
     sel.appendChild(sep);
+
     nomi.forEach(n => {
       const opt = document.createElement('option');
-      opt.value = 'nome:' + n; opt.textContent = n;
+      opt.value = 'nome:' + n; 
+      opt.textContent = n;
       sel.appendChild(opt);
     });
   }
-  if (sel.querySelector(`option[value="${current}"]`)) sel.value = current;
+
+  // Mantiene la selezione se ancora valida
+  if (sel.querySelector(`option[value="${current}"]`)) {
+    sel.value = current;
+  }
 }
 
 function populateSelect(sel, values) {
@@ -180,12 +196,15 @@ function applyFiltersAndRender() {
     if (anno    && String(d.anno) !== anno) return false;
     if (formato && d.formato !== formato) return false;
     if (regione && d.regione !== regione) return false;
+    
+    // Filtro collana (Logica integrata)
     if (collana === 'si' && !d.isCollana) return false;
     if (collana === 'no' && d.isCollana)  return false;
     if (collana.startsWith('nome:')) {
       const nomeCercato = collana.slice(5);
       if (!(d.collane || []).includes(nomeCercato)) return false;
     }
+    
     return true;
   });
 
@@ -280,10 +299,8 @@ function renderCards() {
     card.className = 'dvd-card';
     card.style.animationDelay = `${Math.min(i * 25, 300)}ms`;
     card.dataset.id = dvd.id;
-    // data-formato drives the colored top-border via CSS
     card.dataset.formato = formatoClass(dvd.formato);
 
-    // Meta tags
     const tags = [];
     if (dvd.anno)    tags.push(`<span class="card-tag">${dvd.anno}</span>`);
     if (dvd.durata)  tags.push(`<span class="card-tag">${dvd.durata} min</span>`);
@@ -291,7 +308,6 @@ function renderCards() {
     if (dvd.regione) tags.push(`<span class="card-tag accent">${escHtml(dvd.regione)}</span>`);
     if (dvd.isCollana) tags.push(`<span class="card-tag green">Collana</span>`);
 
-    // Extra info (collane + note)
     let extraHtml = '';
     const hasCollane = dvd.isCollana && dvd.collane && dvd.collane.length > 0;
     if (hasCollane || dvd.note) {
@@ -372,7 +388,7 @@ function openModal(dvd = null) {
   els.fRegione2.value    = dvd?.regione  || '';
   els.fIsCollana.checked = dvd?.isCollana || false;
   els.fNote.value        = dvd?.note     || '';
-  // Ricostruisce i campi collane
+  
   renderCollaneInputs(dvd?.collane || []);
   els.collanaField.style.display = els.fIsCollana.checked ? 'flex' : 'none';
   els.btnSave.textContent = 'SALVA';

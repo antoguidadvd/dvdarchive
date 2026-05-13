@@ -29,17 +29,34 @@ async function _sbFetch(path, options = {}) {
 /* ─── Mapping DB ↔ App ───────────────────────────────────── */
 function _toApp(row) {
   if (!row) return null;
-  // Supporto multi-collana: il campo "collana" può essere una stringa legacy
-  // oppure un array JSON. Normalizziamo sempre ad array.
-  let collane = [];
-  if (Array.isArray(row.collane)) {
-    collane = row.collane.filter(Boolean);
-  } else if (row.collane) {
-    try { collane = JSON.parse(row.collane); } catch { collane = [row.collane]; }
-  } else if (row.collana) {
-    // retrocompatibilità con vecchio campo singolo
-    collane = [row.collana];
+
+  // Creiamo un set per evitare duplicati fin da subito
+  let nomiCollane = new Set();
+
+  // 1. Controlliamo il vecchio campo singolare (testo semplice)
+  if (row.collana) {
+    nomiCollane.add(row.collana.trim());
   }
+
+  // 2. Controlliamo il nuovo campo plurale (array o JSON)
+  if (Array.isArray(row.collane)) {
+    row.collane.forEach(c => c && nomiCollane.add(c.trim()));
+  } else if (row.collane) {
+    try {
+      const parsed = JSON.parse(row.collane);
+      if (Array.isArray(parsed)) {
+        parsed.forEach(c => c && nomiCollane.add(c.trim()));
+      } else {
+        nomiCollane.add(row.collane.trim());
+      }
+    } catch {
+      nomiCollane.add(row.collane.trim());
+    }
+  }
+
+  // Convertiamo il Set in un array pulito
+  const collaneFinali = [...nomiCollane].filter(Boolean);
+
   return {
     id:        String(row.id),
     titolo:    row.titolo     || '',
@@ -48,8 +65,9 @@ function _toApp(row) {
     durata:    row.durata     || null,
     formato:   row.formato    || null,
     regione:   row.regione    || null,
-    isCollana: row.is_collana || false,
-    collane:   collane,          // array (può essere vuoto)
+    // Un DVD è considerato "in collana" se ha il flag attivo OPPURE se ha almeno un nome trovato
+    isCollana: row.is_collana || collaneFinali.length > 0,
+    collane:   collaneFinali,
     note:      row.note       || null,
     createdAt: row.created_at || null,
   };
